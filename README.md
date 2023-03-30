@@ -61,30 +61,30 @@ The template contains the HTML for the view. It displays the data passed to it b
 │   │   └───wsgi.py
 │   ├───manage.py
 │   ├───{app_name}
-│   |   ├───__init__.py
-│   |   ├───admin.py
-│   |   ├───apps.py
-│   |   ├───migrations
-│   |   │   └───__init__.py
-│   |   ├───models.py
-|   |   ├───templates
-│   |   │   └───{app_name}
-│   |   │       ├───{template_name}.html
-|   |   |       └───blocks
-|   |   ├───static
-│   |   │   └───{app_name}
-│   |   │       └───{static_file}
-│   |   ├───tests.py
-│   |   ├───urls.py
-│   |   └───views.py
-|   ├───static
-|   |   ├───css
-|   |   └─── js
-|   ├───templates
-|   |   ├───base.html
-|   |   └───blocks
-|   ├───media
-|   └───requirements.txt
+│   │   ├───__init__.py
+│   │   ├───admin.py
+│   │   ├───apps.py
+│   │   ├───migrations
+│   │   │   └───__init__.py
+│   │   ├───models.py
+│   │   ├───templates
+│   │   │   └───{app_name}
+│   │   │       ├───{template_name}.html
+│   │   │        └───blocks
+│   │   ├───static
+│   │   │   └───{app_name}
+│   │   │       └───{static_file}
+│   │   ├───tests.py
+│   │   ├───urls.py
+│   │   └───views.py
+│   ├───static
+│   │   ├───css
+│   │   └─── js
+│   ├───templates
+│   │   ├───base.html
+│   │   └───blocks
+│   ├───media
+│   └───requirements.txt
 ├───.git
 ├───.gitignore
 └───venv

@@ -423,7 +423,7 @@ For example, if we are logged in, we can display our name and a logout link. If 
 ### About cookies
 A cookie is a small piece of data that is stored on the user's computer by the web browser while browsing a website. Cookies are created when the user visits a website that uses cookies to keep track of the user's browsing session. Each time the user loads a page on the website, the browser sends the cookie back to the server to notify the website of the user's previous activity. Cookies are primarily used for authentication, tracking and personalization. Django uses the hash-based message authentication code (HMAC) to sign cookies. This means that the user can't modify the contents of the cookie. The cookie is signed using a secret key that is stored in the `settings.py` file. The secret key is used to sign the cookie. If the user tries to modify the cookie, the signature will be invalid and the cookie will be rejected. cookies to store session data.
 
-Since django uses the database to administer sessions, we need to create a database table to store the session data. We can do this by running the following command:
+Since django uses the database to administer sessions, we need to run the following command:
 ```bash
 $ python manage.py migrate
 ```
@@ -487,3 +487,357 @@ def some_function(request):
 def some_function(request):
     request.session.set_expiry(datetime.datetime(2019, 1, 1, 12, 0, 0))
 ```
+## Django and PostgreSQL
+### Setting up PostgreSQL
+    $ sudo apt-get install postgresql postgresql-contrib
+
+### Creating a database
+    $ sudo -u postgres psql
+    postgres=# CREATE DATABASE project_database;
+
+### Creating a user
+    postgres=# CREATE USER project_user WITH PASSWORD 'password';
+
+### Granting privileges
+    postgres=# GRANT ALL PRIVILEGES ON DATABASE project_database TO project_user;
+
+### Connecting to the database
+    $ sql -h localhost -U project_user project_database
+
+### Configuring Django to use PostgreSQL
+```python
+# settings.py
+
+DATABASES =  {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql', # set postgres as the database engine
+        'NAME': 'project_database', # database name
+        'USER': 'username', 
+        'PASSWORD': 'password',
+        'HOST': '127.0.0.1', # IP Address localhost
+        'PORT': '5432', # default port. It could be different. to check run: sudo netstat -tulpn | grep :5432
+    }
+} 
+```
+## ORM (Object Relational Mapping)
+ORM is a technique that lets you query and manipulate data from a database using an object-oriented paradigm. In other words, it allows you to write queries and manipulate data using Python objects and classes. ORM is able to translate a row of a database into a class instance, being each column a class attribute, the same apply for the other way around. If you are familiar with java it is similar to the JDBC API.
+
+## Models
+```python
+# app/models.py
+from django.db import models
+
+# inherit from models.Model allows to use the ORM
+class Question(models.Model):
+    info = models.CharField(max_length=200)
+    pub_date = models.DateTimeField(auto_now_add=True, tex_help='date published')
+    update_at = models.DateTimeField(auto_now=True, tex_help='date updated')
+
+    def __str__(self):
+        return self.info
+```
+Notes: id is automatically created by django. It is the primary key of the table. It is an integer field that is automatically incremented. __init__ is not required. Django will create it for you. We can override the __str__ method to return a string representation of the object. The __str__ method is used to display the object in the admin interface.
+
+### "The forward engineering of Django"
+    python3 manage.py makemigrations
+    python3 manage.py migrate
+
+`migrations.py` is a kind of traceability of changes in the database. Each time we make a change in the models, we need to run the `makemigrations` command. This command will create a new file in the `migrations` folder. This file contains the changes that we need to make to the database. The `migrate` command will apply the changes to the database.
+
+### Django Shell
+    python3 manage.py shell
+
+Allows to interact with the models. It is useful to test the models and the ORM. From the shell we can create, retrieve, update and delete objects from the database.
+    
+    import app.models
+
+## CRUD (Create, Read, Update, Delete)
+### Create
+```python
+# app/views.py
+from app.models import Question
+
+def some_function(request):
+    question = Question(info="Why?")
+    question.save()
+```
+Alternatively, we can use the `create` method:
+```python
+# app/views.py
+from app.models import Question
+
+def some_function(request):
+    # ClassName.objects.create(field1="value", field2="value", etc.)
+    question = Question.objects.create(info="Why?")
+```
+The difference between `save` and `create` is that `save` creates an instance of the model and then saves it to the database. `create` creates an instance of the model and saves it to the database in a single step.
+
+### Read
+- `ClassName.objects.all()` Retrieve all objects
+- `ClassName.objects.get(id=1)` Retrieve a single object
+- `ClassName.objects.filter(field="value", ...)` Retrieve all objects that match the filter
+- `ClassName.objects.exclude(field="value", ... )` Retrieve all objects that do not match the filter
+- `ClassName.objects.order_by("field")` Retrieve all objects ordered by the field
+- `ClassName.objects.order_by("-field")` Retrieve all objects ordered by the field in descending order
+- `ClassName.objects.count()` Retrieve the number of objects
+- `ClassName.objects.first()` Retrieve the first object
+- `ClassName.objects.last()` Retrieve the last object
+
+### Update
+```python
+# app/views.py
+from app.models import Question
+
+def some_function(request):
+    question = Question.objects.get(id=1)
+    question.info = "Why not?"
+    question.save()
+```
+### Delete
+```python
+# app/views.py
+from app.models import Question
+
+def some_function(request):
+    question = Question.objects.get(id=1)
+    question.delete()
+```
+
+## One to Many Relationship
+```python
+# app/models.py
+from django.db import models
+
+
+class Question(models.Model):
+    info = models.CharField(max_length=200)
+    pub_date = models.DateTimeField(auto_now_add=True, tex_help='date published')
+    update_at = models.DateTimeField(auto_now=True, tex_help='date updated')
+
+    def __str__(self):
+        return self.info
+    
+class Answer(models.Model):
+    info = models.CharField(max_length=200)
+    question = models.ForeignKey(Question, related_name="answers" ,on_delete=models.CASCADE) # one to many relationship
+    pub_date = models.DateTimeField(auto_now_add=True, tex_help='date published')
+    update_at = models.DateTimeField(auto_now=True, tex_help='date updated')
+
+    def __str__(self):
+        return self.info
+```
+- to establish the relationship in views.py we need to import the models
+```python
+question = Question.objects.get(id=1)
+answer = Answer.objects.create(info="Because", question=question)
+```
+- to retrieve the answers of a question
+```python
+question = Question.objects.get(id=1)
+answers = question.answer_set.all()
+```
+- to retrieve the question of an answer
+```python
+answer = Answer.objects.get(id=1)
+question = answer.question
+```
+
+### Inverse query with related_name
+```python
+# app/models.py
+from django.db import models
+
+
+class Question(models.Model):
+    info = models.TextField()
+    pub_date = models.DateTimeField(auto_now_add=True, tex_help='date published')
+    update_at = models.DateTimeField(auto_now=True, tex_help='date updated')
+    # answers = a list of answers associated with the question.
+
+    def __str__(self):
+        return self.info
+
+class Answer(models.Model):
+    info = models.TextField()
+    question = models.ForeignKey(Question, related_name="answers" ,on_delete=models.CASCADE) # one to many relationship
+    pub_date = models.DateTimeField(auto_now_add=True, tex_help='date published')
+    update_at = models.DateTimeField(auto_now=True, tex_help='date updated')
+
+    def __str__(self):
+        return self.info
+```
+Having the `related_name` attribute in the `ForeignKey` field, we can use the `answers` attribute to retrieve the answers of a question. This is called an inverse query.
+
+```python
+# app/views.py
+from app.models import Question, Answer
+from django.shortcuts import render
+
+def some_function(request):
+    question = Question.objects.get(id=1)
+    answers = question.answers.all() # inverse query
+```
+
+```html
+<h1>Questions List</h1>
+<ul>
+  {% for question in questions %} # assuming that we have a list of questions
+    <li>{{question.info}}
+      <ul>
+    	<!-- loop over the answers! -->
+        {% for answer in question.answers.all %}	
+          <li><em>{{answer.info}}</em></li>
+        {% endfor %}
+      </ul>
+    </li>
+  {% endfor %}
+</ul>
+```
+
+## Many to Many Relationship
+```python
+# app/models.py
+
+from django.db import models
+
+class Book(models.Model):
+	title = models.CharField(max_length=255)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+
+class Publisher(models.Model):
+	name = models.CharField(max_length=255)
+	books = models.ManyToManyField(Book, related_name="publishers") # it does not matter which model has the many to many relationship
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+```
+
+### Add a publisher to a book
+```python
+# app/views.py
+from app.models import Book, Publisher
+
+def some_function(request):
+    book = Book.objects.get(id=1)
+    publisher = Publisher.objects.get(id=1)
+    book.publishers.add(publisher)
+```
+While adding a publisher to a book, django will automatically add the book to the publisher's list of books.
+
+### Remove a publisher from a book
+```python
+# app/views.py
+
+def some_function(request):
+    book = Book.objects.get(id=1)
+    publisher = Publisher.objects.get(id=1)
+    book.publishers.remove(publisher)
+```
+We can use reverse query to retrieve the books of a publisher.
+```python
+# app/views.py
+from app.models import Book, Publisher
+
+def some_function(request):
+    publisher = Publisher.objects.get(id=1)
+    books = publisher.books.all()
+```
+### Advance Querying
+```python
+# app/views.py
+
+def some_function(request):
+    books = Book.objects.filter(publishers__name="publisher name")
+    books = Book.objects.filter(publishers__name__contains="Al")
+```
+
+## RESTful Routing
+- `GET /books` Retrieve all books
+- `GET /books/1` Retrieve a book with id 1
+- `POST /books` Create a new book
+- `PUT /books/1` Update a book with id 1
+- `DELETE /books/1` Delete a book with id 1
+
+Note that the routes for `GET` and `POST` are the same. The difference is in the `method` attribute of the form. The `method` attribute can be `GET` or `POST`.
+
+Note that the `PUT` and `DELETE` methods are not supported by HTML forms. We need to use a library like `axios` to make requests to the server. 
+
+## Validating Inputs before Saving
+```python
+# app/models.py
+from django.db import models
+
+class Book(models.Model):
+    title = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if len(self.title) < 5:
+            raise Exception("Title must be at least 5 characters long")
+        super(Book, self).save(*args, **kwargs)
+```
+```python
+# app/views.py
+
+from app.models import Book
+
+def some_function(request):
+    book = Book.objects.get(id=1)
+    book.title = "a"
+    try:
+        book.save()
+    except Exception as e:
+        print(e)
+```
+Save method is called when we create a new book or update an existing book. We can use this method to validate the inputs before saving the book. An alternative is to customize the behavior of the manager.
+
+```python
+# app/models.py
+
+from django.db import models
+
+class BookManager(models.Manager):
+    def create_book(self, title):
+        if len(title) < 5:
+            raise Exception("Title must be at least 5 characters long")
+        book = self.create(title=title)
+        return book
+
+class Book(models.Model):
+    title = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = BookManager()
+
+    def __str__(self):
+        return self.title
+```
+```python
+# app/views.py
+
+from app.models import Book
+
+def some_function(request):
+    try:
+        book = Book.objects.create_book("a")
+    except Exception as e:
+        pass
+```
+We can use the `create_book` method to create a new book. The `create_book` method will validate the inputs before creating the book.
+
+## Securing Passwords
+### Encrypting vs Hashing
+- **Encryption** is the process of converting plain text into a cipher text. The cipher text is not human readable. The cipher text **can be decrypted back to the plain text**. This kind of technique is used to secure sensitive information like credit card numbers, social security numbers, etc.
+
+- **Hashing** is the process of converting plain text into a cipher text. The cipher text is not human readable. The cipher text **cannot be decrypted back to the plain text**. This kind of technique is used to secure passwords.
+
+
+### Django's Password Hashing
+more info: https://docs.djangoproject.com/en/4.1/topics/auth/passwords/
